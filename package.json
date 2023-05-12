@@ -1,0 +1,53 @@
+{
+  "name": "memofunc",
+  "version": "0.0.0",
+  "description": "Automatically memorize your function call",
+  "keywords": [
+    "cache",
+    "memorize",
+    "performance",
+    "singleton"
+  ],
+  "homepage": "https://github.com/yjl9903/memofunc#readme",
+  "bugs": {
+    "url": "https://github.com/yjl9903/memofunc/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yjl9903/memofunc.git"
+  },
+  "license": "MIT",
+  "author": "XLor",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "format": "prettier --write src/**/*.ts",
+    "release": "bumpp --commit --push --tag && pnpm publish",
+    "preversion": "pnpm typecheck && pnpm build",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.8",
+    "bumpp": "^9.1.0",
+    "prettier": "^2.8.8",
+    "typescript": "^5.0.4",
+    "unbuild": "^1.2.1",
+    "vite": "^4.3.5",
+    "vitest": "^0.31.0"
+  },
+  "packageManager": "pnpm@8.5.0"
+}
