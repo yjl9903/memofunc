@@ -25,6 +25,14 @@ export function makeNode<T extends Fn>(): Node<T> {
   };
 }
 
+export function clearNode<T extends Fn>(node: Node<T>) {
+  node.state = State.Empty;
+  node.value = undefined;
+  node.error = undefined;
+  node.primitive = new Map();
+  node.reference = new WeakMap();
+}
+
 export function walk<T extends Fn>(node: Node<T>, args: Parameters<T>): Node<T> {
   let cur = node;
   for (const arg of args) {

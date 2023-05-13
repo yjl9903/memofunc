@@ -1,10 +1,10 @@
 import type { Fn, MemoFn } from './types';
 
-import { State, makeNode, walk } from './trie';
+import { State, clearNode, makeNode, walk } from './trie';
 
 export function memo<F extends Fn>(fn: F): MemoFn<F> {
   const root = makeNode<F>();
-  return function (...args: Parameters<F>) {
+  const memoFn = function (...args: Parameters<F>) {
     const cur = walk<F>(root, args);
     if (cur.state === State.Ok) {
       return cur.value;
@@ -22,5 +22,16 @@ export function memo<F extends Fn>(fn: F): MemoFn<F> {
         throw error;
       }
     }
+  } as MemoFn<F>;
+  memoFn.clear = (...args) => {
+    if (args.length === 0) {
+      clearNode(root);
+    } else {
+      // TODO: not create node
+      const cur = walk<F>(root, args as Parameters<F>);
+      clearNode(cur);
+    }
   };
+
+  return memoFn;
 }
