@@ -1,4 +1,6 @@
-type Fn = (...params: unknown[]) => unknown;
+import type { Fn, MemoFn } from './types';
+
+import { isPrimitiveType } from './utils';
 
 const enum CallState {
   // 参数未结束
@@ -27,11 +29,7 @@ function makeMemoNode<T extends (...args: any) => any>(): MemoNode<T> {
   };
 }
 
-function isPrimitiveType(value: unknown) {
-  return (typeof value !== 'object' && typeof value !== 'function') || value === null;
-}
-
-export function memo(fn: Fn): Fn {
+export function memo<F extends Fn>(fn: F): MemoFn<F> {
   const memo = makeMemoNode();
   return function (...args: unknown[]) {
     let cur = memo;
