@@ -8,6 +8,8 @@ export interface MemoOptions<F extends Fn> {
 
 export type Fn = (...params: any[]) => any;
 
+export type AsyncFn = (...params: any[]) => Promise<any>;
+
 export interface MemoFunc<F extends Fn> {
   (...args: Parameters<F>): ReturnType<F>;
 

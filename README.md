@@ -12,11 +12,11 @@ npm i memofunc
 ## Usage
 
 ```ts
-import { memo } from 'memofunc'
+import { memoSync } from 'memofunc'
 
 const addFn = (a: number, b: number) => a + b
 
-const add = memo(add);
+const add = memoSync(add);
 
 console.log(add(1, 2))
 ```
