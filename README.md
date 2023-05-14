@@ -65,6 +65,8 @@ const task1 = value();
 const task2 = value();
 const task3 = value();
 
+await Promise.all([task1, task2, task3])
+
 // count === 1
 ```
 
