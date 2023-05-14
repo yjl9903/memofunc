@@ -35,9 +35,9 @@ export function clearNode<T extends Fn>(node: Node<T> | undefined) {
   }
 }
 
-function walkBase<T extends Fn>(
+function walkBase<T extends Fn, P extends any[] = Parameters<T>>(
   node: Node<T>,
-  args: Parameters<T>,
+  args: P,
   hooks: { makeNode: () => Node<T> | undefined }
 ): Node<T> | undefined {
   let cur = node;
@@ -71,10 +71,13 @@ function walkBase<T extends Fn>(
   return cur;
 }
 
-export function walkAndCreate<T extends Fn>(node: Node<T>, args: Parameters<T>) {
+export function walkAndCreate<T extends Fn, P extends any[] = Parameters<T>>(
+  node: Node<T>,
+  args: P
+) {
   return walkBase(node, args, { makeNode })!;
 }
 
-export function walkOrBreak<T extends Fn>(node: Node<T>, args: Parameters<T>) {
+export function walkOrBreak<T extends Fn, P extends any[] = Parameters<T>>(node: Node<T>, args: P) {
   return walkBase(node, args, { makeNode: () => undefined });
 }

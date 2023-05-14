@@ -1,11 +1,15 @@
-import type { Fn, MemoFn } from './types';
+import type { Fn, MemoFunc, MemoOptions } from './types';
 
 import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
-export function memo<F extends Fn>(fn: F): MemoFn<F> {
+export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFunc<F> {
   const root = makeNode<F>();
-  const memoFn = function (...args: Parameters<F>) {
-    const cur = walkAndCreate<F>(root, args);
+
+  const memoFunc = function (...args: Parameters<F>) {
+    // Serialize args
+    const path = options.serialize ? options.serialize(...args) : args;
+    const cur = walkAndCreate<F, any[]>(root, path);
+
     if (cur.state === State.Ok) {
       return cur.value;
     } else if (cur.state === State.Error) {
@@ -22,8 +26,9 @@ export function memo<F extends Fn>(fn: F): MemoFn<F> {
         throw error;
       }
     }
-  } as MemoFn<F>;
-  memoFn.clear = (...args) => {
+  } as MemoFunc<F>;
+
+  memoFunc.clear = (...args) => {
     if (args.length === 0) {
       clearNode(root);
     } else {
@@ -32,7 +37,7 @@ export function memo<F extends Fn>(fn: F): MemoFn<F> {
     }
   };
 
-  return memoFn;
+  return memoFunc;
 }
 
 export const memoSync = memo;
