@@ -4,6 +4,7 @@ import { isPrimitiveType } from './utils';
 export const enum State {
   Empty,
   Ok,
+  Waiting,
   Error
 }
 
@@ -13,6 +14,7 @@ export interface Node<T extends Fn> {
   error: unknown;
   primitive: Map<any, Node<T>>;
   reference: WeakMap<any, Node<T>>;
+  callbacks?: Set<{ res: (value: ReturnType<T>) => void; rej: (error: unknown) => void }>;
 }
 
 export function makeNode<T extends Fn>(): Node<T> {

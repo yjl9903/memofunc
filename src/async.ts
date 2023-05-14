@@ -14,15 +14,35 @@ export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}
       return cur.value;
     } else if (cur.state === State.Error) {
       throw cur.error;
+    } else if (cur.state === State.Waiting) {
+      return new Promise((res, rej) => {
+        if (!cur.callbacks) {
+          cur.callbacks = new Set();
+        }
+        cur.callbacks!.add({ res, rej });
+      });
     } else {
       try {
+        cur.state = State.Waiting;
         const value = await fn(...args);
         cur.state = State.Ok;
         cur.value = value;
+
+        // Resolve other waiting callbacks
+        for (const callback of cur.callbacks ?? []) {
+          callback.res(value);
+        }
+
         return value;
       } catch (error) {
         cur.state = State.Error;
         cur.error = error;
+
+        // Reject other waiting callbacks
+        for (const callback of cur.callbacks ?? []) {
+          callback.rej(error);
+        }
+
         throw error;
       }
     }
