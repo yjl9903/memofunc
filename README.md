@@ -3,6 +3,13 @@
 [![version](https://img.shields.io/npm/v/memofunc?label=memofunc)](https://www.npmjs.com/package/memofunc)
 [![CI](https://github.com/yjl9903/memofunc/actions/workflows/ci.yml/badge.svg)](https://github.com/yjl9903/memofunc/actions/workflows/ci.yml)
 
+**Automatically memorize** your function call. Support **any functions** in JavaScript, zero or more parameters, primitive or reference parameters, sync or async.
+
++ Support sync function and async function
++ Use [Trie](https://en.wikipedia.org/wiki/Trie) to map parameter and its return value
++ Reference object is diffed shallowly with [WeakSet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap) by default
++ Support custom parameter serializaztion method
+
 ## Installation
 
 ```bash
