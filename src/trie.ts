@@ -25,34 +25,56 @@ export function makeNode<T extends Fn>(): Node<T> {
   };
 }
 
-export function clearNode<T extends Fn>(node: Node<T>) {
-  node.state = State.Empty;
-  node.value = undefined;
-  node.error = undefined;
-  node.primitive = new Map();
-  node.reference = new WeakMap();
+export function clearNode<T extends Fn>(node: Node<T> | undefined) {
+  if (node) {
+    node.state = State.Empty;
+    node.value = undefined;
+    node.error = undefined;
+    node.primitive = new Map();
+    node.reference = new WeakMap();
+  }
 }
 
-export function walk<T extends Fn>(node: Node<T>, args: Parameters<T>): Node<T> {
+function walkBase<T extends Fn>(
+  node: Node<T>,
+  args: Parameters<T>,
+  hooks: { makeNode: () => Node<T> | undefined }
+): Node<T> | undefined {
   let cur = node;
   for (const arg of args) {
     if (isPrimitiveType(arg)) {
       if (cur.primitive.has(arg)) {
         cur = cur.primitive.get(arg)!;
       } else {
-        const newNode = makeNode<T>();
-        cur.primitive.set(arg, newNode);
-        cur = newNode;
+        const newNode = hooks.makeNode();
+        if (newNode) {
+          cur.primitive.set(arg, newNode);
+          cur = newNode;
+        } else {
+          return undefined;
+        }
       }
     } else {
       if (cur.reference.has(arg)) {
         cur = cur.reference.get(arg)!;
       } else {
-        const newNode = makeNode<T>();
-        cur.reference.set(arg, newNode);
-        cur = newNode;
+        const newNode = hooks.makeNode();
+        if (newNode) {
+          cur.reference.set(arg, newNode);
+          cur = newNode;
+        } else {
+          return undefined;
+        }
       }
     }
   }
   return cur;
+}
+
+export function walkAndCreate<T extends Fn>(node: Node<T>, args: Parameters<T>) {
+  return walkBase(node, args, { makeNode })!;
+}
+
+export function walkOrBreak<T extends Fn>(node: Node<T>, args: Parameters<T>) {
+  return walkBase(node, args, { makeNode: () => undefined });
 }
