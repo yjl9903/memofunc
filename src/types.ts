@@ -13,5 +13,7 @@ export type AsyncFn = (...params: any[]) => Promise<any>;
 export interface MemoFunc<F extends Fn> {
   (...args: Parameters<F>): ReturnType<F>;
 
+  raw(...args: Parameters<F>): ReturnType<F>;
+
   clear(...args: Parameters<F> | []): void;
 }

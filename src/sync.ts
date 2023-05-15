@@ -28,6 +28,10 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
     }
   } as MemoFunc<F>;
 
+  memoFunc.raw = (...args) => {
+    return fn(...args);
+  };
+
   memoFunc.clear = (...args) => {
     if (args.length === 0) {
       clearNode(root);

@@ -48,6 +48,10 @@ export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}
     }
   } as MemoFunc<F>;
 
+  memoFunc.raw = (...args) => {
+    return fn(...args) as ReturnType<F>;
+  };
+
   memoFunc.clear = (...args) => {
     if (args.length === 0) {
       clearNode(root);
