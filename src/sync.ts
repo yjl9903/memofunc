@@ -28,6 +28,10 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
     }
   } as MemoFunc<F>;
 
+  memoFunc.get = (...args) => {
+    return memoFunc(...args);
+  };
+
   memoFunc.raw = (...args) => {
     return fn(...args);
   };

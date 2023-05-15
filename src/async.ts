@@ -48,6 +48,10 @@ export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}
     }
   } as MemoFunc<F>;
 
+  memoFunc.get = (...args) => {
+    return memoFunc(...args);
+  };
+
   memoFunc.raw = (...args) => {
     return fn(...args) as ReturnType<F>;
   };
