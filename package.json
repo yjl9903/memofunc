@@ -1,6 +1,6 @@
 {
   "name": "memofunc",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Automatically memorize your function call",
   "keywords": [
     "cache",
