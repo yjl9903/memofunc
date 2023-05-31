@@ -1,9 +1,21 @@
-export interface MemoOptions<F extends Fn> {
+export interface MemoOptions<F extends Fn, S extends unknown[] = unknown[]> {
   /**
    * Serialize the function call arguments
    * This is used to identify cache key
    */
-  serialize?: (...args: Parameters<F>) => any[];
+  serialize?: (...args: Parameters<F>) => S;
+}
+
+export interface MemoAsyncOptions<F extends Fn> extends MemoOptions<F> {
+  external?: {
+    get: (args: Parameters<F>) => Promise<Awaited<ReturnType<F>> | undefined | null>;
+
+    set: (args: Parameters<F>, value: Awaited<ReturnType<F>>) => Promise<void>;
+
+    remove: (args: Parameters<F>) => Promise<void>;
+
+    clear: () => Promise<void>;
+  };
 }
 
 export type Fn = (...params: any[]) => any;
@@ -21,5 +33,5 @@ export interface MemoFunc<F extends Fn> {
   raw(...args: Parameters<F>): ReturnType<F>;
 
   // Clear cache
-  clear(...args: Parameters<F> | []): void;
+  clear(...args: Parameters<F> | []): void | Promise<void>;
 }

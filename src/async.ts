@@ -1,8 +1,11 @@
-import type { AsyncFn, MemoFunc, MemoOptions } from './types';
+import type { AsyncFn, MemoFunc, MemoAsyncOptions } from './types';
 
 import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
-export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}): MemoFunc<F> {
+export function memoAsync<F extends AsyncFn>(
+  fn: F,
+  options: MemoAsyncOptions<F> = {}
+): MemoFunc<F> {
   const root = makeNode<F>();
 
   const memoFunc = async function (...args: Parameters<F>) {
@@ -24,9 +27,16 @@ export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}
     } else {
       try {
         cur.state = State.Waiting;
-        const value = await fn(...args);
+
+        const external = options.external ? await options.external.get(args) : undefined;
+        const value = external !== undefined && external !== null ? external : await fn(...args);
+
         cur.state = State.Ok;
         cur.value = value;
+
+        if (options.external) {
+          await options.external.set(args, value);
+        }
 
         // Resolve other waiting callbacks
         for (const callback of cur.callbacks ?? []) {
@@ -56,12 +66,18 @@ export function memoAsync<F extends AsyncFn>(fn: F, options: MemoOptions<F> = {}
     return fn(...args) as ReturnType<F>;
   };
 
-  memoFunc.clear = (...args) => {
+  memoFunc.clear = async (...args) => {
     if (args.length === 0) {
       clearNode(root);
+      if (options.external) {
+        await options.external.clear();
+      }
     } else {
       const cur = walkOrBreak<F>(root, args as Parameters<F>);
       clearNode(cur);
+      if (options.external) {
+        await options.external.remove(args as Parameters<F>);
+      }
     }
   };
 
