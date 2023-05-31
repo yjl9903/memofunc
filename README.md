@@ -7,8 +7,9 @@
 
 + Support sync function and async function
 + Use [Trie](https://en.wikipedia.org/wiki/Trie) to map parameter and its return value
-+ Reference object is diffed shallowly with [WeakSet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap) by default
++ Reference object is diffed shallowly with [WeakSet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 + Support custom parameter serializaztion method
++ Support async external cache source
 
 ## Installation
 
