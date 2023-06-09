@@ -28,14 +28,16 @@ export function memoAsync<F extends AsyncFn>(
       try {
         cur.state = State.Waiting;
 
-        const external = options.external ? await options.external.get(args) : undefined;
+        const external = options.external
+          ? await options.external.get(args).catch(() => undefined)
+          : undefined;
         const value = external !== undefined && external !== null ? external : await fn(...args);
 
         cur.state = State.Ok;
         cur.value = value;
 
         if (options.external) {
-          await options.external.set(args, value);
+          await options.external.set(args, value).catch(() => {});
         }
 
         // Resolve other waiting callbacks
@@ -70,13 +72,13 @@ export function memoAsync<F extends AsyncFn>(
     if (args.length === 0) {
       clearNode(root);
       if (options.external) {
-        await options.external.clear();
+        await options.external.clear().catch(() => {});
       }
     } else {
       const cur = walkOrBreak<F>(root, args as Parameters<F>);
       clearNode(cur);
       if (options.external) {
-        await options.external.remove(args as Parameters<F>);
+        await options.external.remove(args as Parameters<F>).catch(() => {});
       }
     }
   };
