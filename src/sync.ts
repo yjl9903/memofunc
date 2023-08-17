@@ -36,13 +36,13 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
     return fn(...args);
   };
 
-  memoFunc.clear = (...args) => {
-    if (args.length === 0) {
-      clearNode(root);
-    } else {
-      const cur = walkOrBreak<F>(root, args as Parameters<F>);
-      clearNode(cur);
-    }
+  memoFunc.remove = (...args) => {
+    const cur = walkOrBreak<F>(root, args as Parameters<F>);
+    clearNode(cur);
+  };
+
+  memoFunc.clear = () => {
+    clearNode(root);
   };
 
   return memoFunc;

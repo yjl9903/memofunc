@@ -32,6 +32,9 @@ export interface MemoFunc<F extends Fn> {
   // Call the raw function and skip cache
   raw(...args: Parameters<F>): ReturnType<F>;
 
-  // Clear cache
-  clear(...args: Parameters<F> | []): void | Promise<void>;
+  // Remove cache
+  remove(...args: Parameters<F>): void | Promise<void>;
+
+  // Clear all the cache
+  clear(): void | Promise<void>;
 }

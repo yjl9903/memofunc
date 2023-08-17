@@ -31,12 +31,13 @@ export function memoAsync<F extends AsyncFn>(
         const external = options.external
           ? await options.external.get(args).catch(() => undefined)
           : undefined;
-        const value = external !== undefined && external !== null ? external : await fn(...args);
+        const hasExternalCache = external !== undefined && external !== null;
+        const value = hasExternalCache ? external : await fn(...args);
 
         cur.state = State.Ok;
         cur.value = value;
 
-        if (options.external) {
+        if (!hasExternalCache && options.external) {
           await options.external.set(args, value).catch(() => {});
         }
 
@@ -68,18 +69,18 @@ export function memoAsync<F extends AsyncFn>(
     return fn(...args) as ReturnType<F>;
   };
 
-  memoFunc.clear = async (...args) => {
-    if (args.length === 0) {
-      clearNode(root);
-      if (options.external) {
-        await options.external.clear().catch(() => {});
-      }
-    } else {
-      const cur = walkOrBreak<F>(root, args as Parameters<F>);
-      clearNode(cur);
-      if (options.external) {
-        await options.external.remove(args as Parameters<F>).catch(() => {});
-      }
+  memoFunc.remove = async (...args) => {
+    const cur = walkOrBreak<F>(root, args as Parameters<F>);
+    clearNode(cur);
+    if (options.external) {
+      await options.external.remove(args as Parameters<F>).catch(() => {});
+    }
+  };
+
+  memoFunc.clear = async () => {
+    clearNode(root);
+    if (options.external) {
+      await options.external.clear().catch(() => {});
     }
   };
 
