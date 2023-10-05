@@ -84,5 +84,7 @@ export function memoAsync<F extends AsyncFn>(
     }
   };
 
+  memoFunc.external = options.external;
+
   return memoFunc;
 }

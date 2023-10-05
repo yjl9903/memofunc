@@ -26,7 +26,7 @@ export interface MemoFunc<F extends Fn> {
   // Call the target function, if cache is valid, return cache
   (...args: Parameters<F>): ReturnType<F>;
 
-  // Same with this function
+  // Call the target function, if cache is valid, return cache
   get(...args: Parameters<F>): ReturnType<F>;
 
   // Call the raw function and skip cache
@@ -37,4 +37,7 @@ export interface MemoFunc<F extends Fn> {
 
   // Clear all the cache
   clear(): void | Promise<void>;
+
+  // External cache
+  external?: MemoAsyncOptions<F>['external'];
 }
