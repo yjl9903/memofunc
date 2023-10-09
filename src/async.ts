@@ -10,7 +10,7 @@ export function memoAsync<F extends AsyncFn>(
 
   const memoFunc = async function (...args: Parameters<F>) {
     // Serialize args
-    const path = options.serialize ? options.serialize(...args) : args;
+    const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
 
     if (cur.state === State.Ok) {
@@ -29,7 +29,9 @@ export function memoAsync<F extends AsyncFn>(
         cur.state = State.Waiting;
 
         const external = options.external
-          ? await options.external.get(args).catch(() => undefined)
+          ? await options.external.get
+              .bind(memoFunc)(args)
+              .catch(() => undefined)
           : undefined;
         const hasExternalCache = external !== undefined && external !== null;
         const value = hasExternalCache ? external : await fn(...args);
@@ -38,7 +40,9 @@ export function memoAsync<F extends AsyncFn>(
         cur.value = value;
 
         if (!hasExternalCache && options.external) {
-          await options.external.set(args, value).catch(() => {});
+          await options.external.set
+            .bind(memoFunc)(args, value)
+            .catch(() => {});
         }
 
         // Resolve other waiting callbacks
@@ -73,14 +77,18 @@ export function memoAsync<F extends AsyncFn>(
     const cur = walkOrBreak<F>(root, args as Parameters<F>);
     clearNode(cur);
     if (options.external) {
-      await options.external.remove(args as Parameters<F>).catch(() => {});
+      await options.external.remove
+        .bind(memoFunc)(args as Parameters<F>)
+        .catch(() => {});
     }
   };
 
   memoFunc.clear = async () => {
     clearNode(root);
     if (options.external) {
-      await options.external.clear().catch(() => {});
+      await options.external.clear
+        .bind(memoFunc)()
+        .catch(() => {});
     }
   };
 
