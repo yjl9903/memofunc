@@ -24,7 +24,7 @@ import { memoSync } from 'memofunc'
 
 const addFn = (a: number, b: number) => a + b
 
-const add = memoSync(add);
+const add = memoSync(add)
 
 console.log(add(1, 2))
 ```
