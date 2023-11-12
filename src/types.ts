@@ -3,18 +3,23 @@ export interface MemoOptions<F extends Fn, S extends unknown[] = unknown[]> {
    * Serialize the function call arguments
    * This is used to identify cache key
    */
-  serialize?: (...args: Parameters<F>) => S;
+  serialize?: (this: MemoFunc<F>, ...args: Parameters<F>) => S;
 }
 
 export interface MemoAsyncOptions<F extends Fn> extends MemoOptions<F> {
   external?: {
-    get: (args: Parameters<F>) => Promise<Awaited<ReturnType<F>> | undefined | null>;
+    get: (
+      this: MemoFunc<F>,
+      args: Parameters<F>
+    ) => Promise<Awaited<ReturnType<F>> | undefined | null>;
 
-    set: (args: Parameters<F>, value: Awaited<ReturnType<F>>) => Promise<void>;
+    set: (this: MemoFunc<F>, args: Parameters<F>, value: Awaited<ReturnType<F>>) => Promise<void>;
 
-    remove: (args: Parameters<F>) => Promise<void>;
+    remove: (this: MemoFunc<F>, args: Parameters<F>) => Promise<void>;
 
-    clear: () => Promise<void>;
+    clear: (this: MemoFunc<F>) => Promise<void>;
+
+    error?: (err: unknown) => void | Promise<void>;
   };
 }
 
