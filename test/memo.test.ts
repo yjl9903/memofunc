@@ -33,6 +33,28 @@ describe('memo sync', () => {
     expect(add(1, 1)).toBe(2);
     expect(count).toBe(2);
   });
+
+  it('should serialize', () => {
+    const add = memo(
+      (a: number, b: number) => {
+        return a + b;
+      },
+      {
+        serialize(a, b) {
+          expect(this).toBe(add);
+          return [a];
+        }
+      }
+    );
+
+    expect(add(1, 1)).toBe(2);
+    expect(add(1, 2)).toBe(2);
+    expect(add(1, 3)).toBe(2);
+    expect(add(1, 4)).toBe(2);
+    expect(add(1, 5)).toBe(2);
+    expect(add(2, 1)).toBe(3);
+    expect(add(2, 2)).toBe(3);
+  });
 });
 
 describe('memo async', () => {

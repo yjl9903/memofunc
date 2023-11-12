@@ -7,7 +7,7 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
 
   const memoFunc = function (...args: Parameters<F>) {
     // Serialize args
-    const path = options.serialize ? options.serialize(...args) : args;
+    const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
 
     if (cur.state === State.Ok) {
