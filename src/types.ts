@@ -18,6 +18,8 @@ export interface MemoAsyncOptions<F extends Fn> extends MemoOptions<F> {
     remove: (this: MemoFunc<F>, args: Parameters<F>) => Promise<void>;
 
     clear: (this: MemoFunc<F>) => Promise<void>;
+
+    error?: (err: unknown) => void | Promise<void>;
   };
 }
 
