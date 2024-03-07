@@ -33,7 +33,7 @@ console.log(add(1, 2))
 
 ### memoAsync
 
-It also supports memorize async function call.
+It also supports memorize async function call. After invoking once for every specified arguments, the result is located in the local memory.
 
 ```ts
 import { memoAsync } from 'memofunc'
@@ -84,7 +84,46 @@ await Promise.all([task1, task2, task3])
 
 ### memoExternal
 
-> WIP.
+The caching mechanism relies on an external asynchronous service and does not store results in the local memory.
+
+Upon invoking the function, it will:
+
+1. It retrieves results from the cache. For concurrent function calls, the cache is queried only once like `memoAsync`;
+2. It either returns the cached results or calls the underlying function if the cache is empty.
+
+This approach facilitates the development of caching solutions within distributed systems, such as Cloudflare Workers.
+
+Consider a scenario where the goal of your proxied function is to query database. Once some distributed nodes update the database, you should invalidate the related cache. This ensures that other nodes, relying entirely on the external cache service, will access the latest data available.
+
+```ts
+let cnt = 0;
+const func = memoExternal(async () => 0, {
+  external: {
+    async get() {
+      await sleep(100);
+      return ++cnt;
+    },
+    async set() {},
+    async clear() {
+      cnt = 0;
+    },
+    async remove() {
+      cnt = 0;
+    }
+  }
+});
+
+// It will call the external cache get function with cnt = 0
+const tasks = await Promise.all([func(), func(), func(), func(), func()]);
+expect(tasks).toStrictEqual([1, 1, 1, 1, 1]);
+
+// Clear the cache, cnt = 0
+func.clear();
+
+// It will call the external cache get function with cnt = 0
+const tasks2 = await Promise.all([func(), func(), func(), func(), func()]);
+expect(tasks2).toStrictEqual([1, 1, 1, 1, 1]);
+```
 
 ## License
 
