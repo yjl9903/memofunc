@@ -38,7 +38,7 @@
     "release": "bumpp --commit --push --tag && pnpm publish",
     "preversion": "pnpm typecheck && pnpm build",
     "test": "vitest",
-    "typecheck": "tsc --noEmit && vitest --typecheck.only"
+    "typecheck": "tsc --noEmit && vitest --typecheck.only --run"
   },
   "devDependencies": {
     "@types/node": "^18.19.22",

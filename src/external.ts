@@ -53,12 +53,16 @@ export function memoExternal<F extends AsyncFn>(
           await options.external.set.bind(memoFunc)(args, value).catch(externalOnError);
         }
 
-        // Resolve other waiting callbacks
-        for (const callback of cur.callbacks ?? []) {
-          callback.res(value);
+        try {
+          // Resolve other waiting callbacks
+          for (const callback of cur.callbacks ?? []) {
+            callback.res(value);
+          }
+          // Release callbacks
+          cur.callbacks = undefined;
+        } catch {
+          // Should not have errors here
         }
-        // Release callbacks
-        cur.callbacks = undefined;
 
         return value;
       } catch (error) {
@@ -116,14 +120,18 @@ export function memoExternal<F extends AsyncFn>(
         await options.external.remove
           .bind(memoFunc)(args as Parameters<F>)
           .catch(options.external?.error ?? (() => undefined));
+      } finally {
+        cur.state = State.Empty;
+      }
 
+      try {
         // Resolve other waiting callbacks
         for (const callback of cur.removingCallbacks ?? []) {
           callback.res();
         }
         cur.removingCallbacks = undefined;
-      } finally {
-        cur.state = State.Empty;
+      } catch {
+        // Should not have errors here
       }
     }
   };
