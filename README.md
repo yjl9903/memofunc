@@ -9,7 +9,8 @@
 + Use [Trie](https://en.wikipedia.org/wiki/Trie) to map parameter and its return value
 + Reference object is diffed shallowly with [WeakSet](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 + Support custom parameter serializaztion method
-+ Support async external cache source
++ Support memory and async external cache source at the same time
++ Support fully external cache source
 
 ## Installation
 
