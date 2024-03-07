@@ -236,7 +236,7 @@ describe('memo external', () => {
       func(),
       func()
     ]);
-    expect(tasks2).toStrictEqual([undefined, 1, 1, 1, undefined, 1, 1]);
+    expect(tasks2).toStrictEqual([undefined, 1, 2, 3, undefined, 4, 5]);
   });
 });
 

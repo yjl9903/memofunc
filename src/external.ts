@@ -28,7 +28,7 @@ export function memoExternal<F extends AsyncFn>(
     } else {
       try {
         // Waiting or Removing
-        if (cur.state === State.Removing) {
+        while (cur.state === State.Removing) {
           await new Promise<void>((res) => {
             if (!cur.removingCallbacks) {
               cur.removingCallbacks = new Set();
@@ -90,33 +90,41 @@ export function memoExternal<F extends AsyncFn>(
     const cur = walkOrBreak<F, any[]>(root, path);
 
     if (cur) {
-      if (cur.state === State.Waiting) {
-        await new Promise((res) => {
-          if (!cur.callbacks) {
-            cur.callbacks = new Set();
-          }
-          // Ignore error
-          cur.callbacks!.add({ res, rej: () => {} });
-        });
-      } else if (cur.state === State.Removing) {
-        await new Promise<void>((res) => {
-          if (!cur.removingCallbacks) {
-            cur.removingCallbacks = new Set();
-          }
-          // Ignore error
-          cur.removingCallbacks!.add({ res, rej: () => {} });
-        });
+      while (cur.state === State.Waiting || cur.state === State.Removing) {
+        if (cur.state === State.Waiting) {
+          await new Promise((res) => {
+            if (!cur.callbacks) {
+              cur.callbacks = new Set();
+            }
+            // Ignore error
+            cur.callbacks!.add({ res, rej: () => {} });
+          });
+        } else if (cur.state === State.Removing) {
+          await new Promise<void>((res) => {
+            if (!cur.removingCallbacks) {
+              cur.removingCallbacks = new Set();
+            }
+            // Ignore error
+            cur.removingCallbacks!.add({ res, rej: () => {} });
+          });
+        }
       }
 
-      await options.external.remove
-        .bind(memoFunc)(args as Parameters<F>)
-        .catch(options.external?.error ?? (() => undefined));
+      try {
+        cur.state = State.Removing;
 
-      // Resolve other waiting callbacks
-      for (const callback of cur.removingCallbacks ?? []) {
-        callback.res();
+        await options.external.remove
+          .bind(memoFunc)(args as Parameters<F>)
+          .catch(options.external?.error ?? (() => undefined));
+
+        // Resolve other waiting callbacks
+        for (const callback of cur.removingCallbacks ?? []) {
+          callback.res();
+        }
+        cur.removingCallbacks = undefined;
+      } finally {
+        cur.state = State.Empty;
       }
-      cur.removingCallbacks = undefined;
     }
   };
 
