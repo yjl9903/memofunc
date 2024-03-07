@@ -2,4 +2,6 @@ export * from './sync';
 
 export * from './async';
 
-export type { MemoFunc, MemoOptions } from './types';
+export * from './external';
+
+export type { MemoFunc, MemoOptions, MemoAsyncOptions, MemoExternalOptions } from './types';

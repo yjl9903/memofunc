@@ -23,6 +23,23 @@ export interface MemoAsyncOptions<F extends Fn> extends MemoOptions<F> {
   };
 }
 
+export interface MemoExternalOptions<F extends Fn> extends MemoOptions<F> {
+  external: {
+    get: (
+      this: MemoFunc<F>,
+      args: Parameters<F>
+    ) => Promise<Awaited<ReturnType<F>> | undefined | null>;
+
+    set: (this: MemoFunc<F>, args: Parameters<F>, value: Awaited<ReturnType<F>>) => Promise<void>;
+
+    remove: (this: MemoFunc<F>, args: Parameters<F>) => Promise<void>;
+
+    clear: (this: MemoFunc<F>) => Promise<void>;
+
+    error?: (err: unknown) => void | Promise<void>;
+  };
+}
+
 export type Fn = (...params: any[]) => any;
 
 export type AsyncFn = (...params: any[]) => Promise<any>;

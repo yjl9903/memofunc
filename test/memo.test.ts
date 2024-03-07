@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { memo, memoAsync } from '../src';
+import { memo, memoAsync, memoExternal } from '../src';
 
 describe('memo sync', () => {
   it('should work', () => {
@@ -98,6 +98,111 @@ describe('memo async', () => {
     expect(await sort([1, 2, 3])).toEqual([1, 2, 3]);
     expect(await sort([1, 2, 3])).toEqual([1, 2, 3]);
     expect(visited).toEqual(3);
+  });
+});
+
+describe('memo external', () => {
+  it('should prefer external cache', async () => {
+    const func = memoExternal(async () => 1, {
+      external: {
+        async get() {
+          return 2;
+        },
+        async set() {},
+        async clear() {},
+        async remove() {}
+      }
+    });
+
+    expect(await func()).toBe(2);
+    expect(await func()).toBe(2);
+    expect(await func()).toBe(2);
+    expect(await func()).toBe(2);
+  });
+
+  it('should skip external cache', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => ++cnt, {
+      external: {
+        async get() {
+          return undefined;
+        },
+        async set() {},
+        async clear() {},
+        async remove() {}
+      }
+    });
+
+    expect(await func()).toBe(1);
+    expect(await func()).toBe(2);
+    expect(await func()).toBe(3);
+    expect(await func()).toBe(4);
+  });
+
+  it('should get external cache once', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => ++cnt, {
+      external: {
+        async get() {
+          await sleep(100);
+          return undefined;
+        },
+        async set() {},
+        async clear() {},
+        async remove() {}
+      }
+    });
+
+    const tasks = await Promise.all([func(), func(), func(), func(), func()]);
+    expect(tasks).toStrictEqual([1, 1, 1, 1, 1]);
+  });
+
+  it('should get external cache twice', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => ++cnt, {
+      external: {
+        async get() {
+          await sleep(100);
+          return undefined;
+        },
+        async set() {},
+        async clear() {},
+        async remove() {}
+      }
+    });
+
+    const tasks = await Promise.all([func(), func(), func(), func(), func()]);
+    expect(tasks).toStrictEqual([1, 1, 1, 1, 1]);
+
+    const tasks2 = await Promise.all([func(), func(), func(), func(), func()]);
+    expect(tasks2).toStrictEqual([2, 2, 2, 2, 2]);
+  });
+
+  it('should get external cache after removing', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => 0, {
+      external: {
+        async get() {
+          await sleep(100);
+          return ++cnt;
+        },
+        async set() {},
+        async clear() {
+          cnt = 0;
+        },
+        async remove() {
+          cnt = 0;
+        }
+      }
+    });
+
+    const tasks = await Promise.all([func(), func(), func(), func(), func()]);
+    expect(tasks).toStrictEqual([1, 1, 1, 1, 1]);
+
+    func.clear();
+
+    const tasks2 = await Promise.all([func(), func(), func(), func(), func()]);
+    expect(tasks2).toStrictEqual([1, 1, 1, 1, 1]);
   });
 });
 
