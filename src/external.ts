@@ -2,6 +2,8 @@ import type { AsyncFn, MemoExternalFunc, MemoExternalOptions } from './types';
 
 import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
+const MAX_THREADS = 100;
+
 export function memoExternal<F extends AsyncFn>(
   fn: F,
   options: MemoExternalOptions<F>
@@ -26,14 +28,19 @@ export function memoExternal<F extends AsyncFn>(
         cur.callbacks!.add({ res, rej });
       });
     } else if (cur.state === State.Updating) {
+      let threads = 0;
       let updatedValue: ReturnType<F>;
-      while (cur.state === State.Updating) {
+      while (++threads <= MAX_THREADS && cur.state === State.Updating) {
         updatedValue = await new Promise((res, rej) => {
           if (!cur.updatingCallbacks) {
             cur.updatingCallbacks = new Set();
           }
           cur.updatingCallbacks!.add({ res, rej });
         });
+      }
+      // Fallback to avoid infinte loops
+      if (threads > MAX_THREADS) {
+        return await fn(...args);
       }
       return updatedValue!;
     } else {
@@ -108,7 +115,11 @@ export function memoExternal<F extends AsyncFn>(
     const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
 
-    while (cur.state === State.Waiting || cur.state === State.Updating) {
+    let threads = 0;
+    while (
+      ++threads <= MAX_THREADS &&
+      (cur.state === State.Waiting || cur.state === State.Updating)
+    ) {
       if (cur.state === State.Waiting) {
         await new Promise((res) => {
           if (!cur.callbacks) {
