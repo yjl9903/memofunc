@@ -109,7 +109,6 @@ describe('memo external', () => {
           return 2;
         },
         async set() {},
-        async clear() {},
         async remove() {}
       }
     });
@@ -128,7 +127,6 @@ describe('memo external', () => {
           return undefined;
         },
         async set() {},
-        async clear() {},
         async remove() {}
       }
     });
@@ -148,7 +146,6 @@ describe('memo external', () => {
           return undefined;
         },
         async set() {},
-        async clear() {},
         async remove() {}
       }
     });
@@ -166,7 +163,6 @@ describe('memo external', () => {
           return undefined;
         },
         async set() {},
-        async clear() {},
         async remove() {}
       }
     });
@@ -187,9 +183,6 @@ describe('memo external', () => {
           return ++cnt;
         },
         async set() {},
-        async clear() {
-          cnt = 0;
-        },
         async remove() {
           cnt = 0;
         }
@@ -199,10 +192,51 @@ describe('memo external', () => {
     const tasks = await Promise.all([func(), func(), func(), func(), func()]);
     expect(tasks).toStrictEqual([1, 1, 1, 1, 1]);
 
-    func.clear();
+    await func.remove();
 
     const tasks2 = await Promise.all([func(), func(), func(), func(), func()]);
     expect(tasks2).toStrictEqual([1, 1, 1, 1, 1]);
+  });
+
+  it('should not interleave get and remove external cache', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => 0, {
+      external: {
+        async get() {
+          await sleep(200);
+          return ++cnt;
+        },
+        async set() {},
+        async remove() {
+          await sleep(100);
+          cnt = 0;
+        }
+      }
+    });
+
+    const tasks = await Promise.all([
+      func(),
+      func.remove(),
+      func(),
+      func(),
+      func(),
+      func.remove(),
+      func()
+    ]);
+    expect(tasks).toStrictEqual([1, undefined, 1, 1, 1, undefined, 1]);
+    expect(cnt).toBe(0);
+
+    cnt = 10;
+    const tasks2 = await Promise.all([
+      func.remove(),
+      func(),
+      func(),
+      func(),
+      func.remove(),
+      func(),
+      func()
+    ]);
+    expect(tasks2).toStrictEqual([undefined, 1, 1, 1, undefined, 1, 1]);
   });
 });
 

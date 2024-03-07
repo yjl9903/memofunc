@@ -1,11 +1,11 @@
-import type { AsyncFn, MemoFunc, MemoAsyncOptions } from './types';
+import type { AsyncFn, MemoAsyncFunc, MemoAsyncOptions } from './types';
 
 import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
 export function memoAsync<F extends AsyncFn>(
   fn: F,
   options: MemoAsyncOptions<F> = {}
-): MemoFunc<F> {
+): MemoAsyncFunc<F> {
   const root = makeNode<F>();
 
   const memoFunc = async function (...args: Parameters<F>) {
@@ -46,6 +46,8 @@ export function memoAsync<F extends AsyncFn>(
         for (const callback of cur.callbacks ?? []) {
           callback.res(value);
         }
+        // Release callbacks
+        cur.callbacks = undefined;
 
         return value;
       } catch (error) {
@@ -56,11 +58,13 @@ export function memoAsync<F extends AsyncFn>(
         for (const callback of cur.callbacks ?? []) {
           callback.rej(error);
         }
+        // Release callbacks
+        cur.callbacks = undefined;
 
         throw error;
       }
     }
-  } as MemoFunc<F>;
+  } as MemoAsyncFunc<F>;
 
   memoFunc.get = (...args) => {
     return memoFunc(...args);

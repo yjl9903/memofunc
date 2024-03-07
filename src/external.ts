@@ -1,11 +1,11 @@
-import type { AsyncFn, MemoFunc, MemoExternalOptions } from './types';
+import type { AsyncFn, MemoExternalFunc, MemoExternalOptions } from './types';
 
 import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
 export function memoExternal<F extends AsyncFn>(
   fn: F,
   options: MemoExternalOptions<F>
-): MemoFunc<F> {
+): MemoExternalFunc<F> {
   const root = makeNode<F>();
 
   const memoFunc = async function (...args: Parameters<F>) {
@@ -27,6 +27,17 @@ export function memoExternal<F extends AsyncFn>(
       });
     } else {
       try {
+        // Waiting or Removing
+        if (cur.state === State.Removing) {
+          await new Promise<void>((res) => {
+            if (!cur.removingCallbacks) {
+              cur.removingCallbacks = new Set();
+            }
+            // Ignore error
+            cur.removingCallbacks!.add({ res, rej: () => {} });
+          });
+        }
+
         cur.state = State.Waiting;
 
         const externalOnError = options.external.error ?? (() => undefined);
@@ -35,7 +46,7 @@ export function memoExternal<F extends AsyncFn>(
         const hasExternalCache = external !== undefined && external !== null;
         const value = hasExternalCache ? external : await fn(...args);
 
-        cur.state = State.Ok;
+        cur.state = State.Empty;
         cur.value = value;
 
         if (!hasExternalCache) {
@@ -46,21 +57,25 @@ export function memoExternal<F extends AsyncFn>(
         for (const callback of cur.callbacks ?? []) {
           callback.res(value);
         }
+        // Release callbacks
+        cur.callbacks = undefined;
 
         return value;
       } catch (error) {
-        cur.state = State.Error;
+        cur.state = State.Empty;
         cur.error = error;
 
         // Reject other waiting callbacks
         for (const callback of cur.callbacks ?? []) {
           callback.rej(error);
         }
+        // Release callbacks
+        cur.callbacks = undefined;
 
         throw error;
       }
     }
-  } as MemoFunc<F>;
+  } as MemoExternalFunc<F>;
 
   memoFunc.get = (...args) => {
     return memoFunc(...args);
@@ -74,17 +89,35 @@ export function memoExternal<F extends AsyncFn>(
     const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkOrBreak<F, any[]>(root, path);
 
-    clearNode(cur);
-    await options.external.remove
-      .bind(memoFunc)(args as Parameters<F>)
-      .catch(options.external?.error ?? (() => undefined));
-  };
+    if (cur) {
+      if (cur.state === State.Waiting) {
+        await new Promise((res) => {
+          if (!cur.callbacks) {
+            cur.callbacks = new Set();
+          }
+          // Ignore error
+          cur.callbacks!.add({ res, rej: () => {} });
+        });
+      } else if (cur.state === State.Removing) {
+        await new Promise<void>((res) => {
+          if (!cur.removingCallbacks) {
+            cur.removingCallbacks = new Set();
+          }
+          // Ignore error
+          cur.removingCallbacks!.add({ res, rej: () => {} });
+        });
+      }
 
-  memoFunc.clear = async () => {
-    clearNode(root);
-    await options.external.clear
-      .bind(memoFunc)()
-      .catch(options.external?.error ?? (() => undefined));
+      await options.external.remove
+        .bind(memoFunc)(args as Parameters<F>)
+        .catch(options.external?.error ?? (() => undefined));
+
+      // Resolve other waiting callbacks
+      for (const callback of cur.removingCallbacks ?? []) {
+        callback.res();
+      }
+      cur.removingCallbacks = undefined;
+    }
   };
 
   memoFunc.external = options.external;
