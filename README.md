@@ -19,6 +19,8 @@ npm i memofunc
 
 ## Usage
 
+### memoSync
+
 ```ts
 import { memoSync } from 'memofunc'
 
@@ -28,6 +30,8 @@ const add = memoSync(add)
 
 console.log(add(1, 2))
 ```
+
+### memoAsync
 
 It also supports memorize async function call.
 
@@ -77,6 +81,10 @@ await Promise.all([task1, task2, task3])
 
 // count === 1
 ```
+
+### memoExternal
+
+> WIP.
 
 ## License
 
