@@ -198,7 +198,7 @@ describe('memo external', () => {
     expect(tasks2).toStrictEqual([1, 1, 1, 1, 1]);
   });
 
-  it('should not interleave get and remove external cache', async () => {
+  it('should not interleave get and update external cache', async () => {
     let cnt = 0;
     const func = memoExternal(async () => 0, {
       external: {
@@ -206,37 +206,87 @@ describe('memo external', () => {
           await sleep(200);
           return ++cnt;
         },
-        async set() {},
-        async remove() {
+        async set() {
           await sleep(100);
           cnt = 0;
-        }
+        },
+        async remove() {}
       }
     });
 
     const tasks = await Promise.all([
       func(),
-      func.remove(),
+      func.update(),
       func(),
       func(),
       func(),
-      func.remove(),
+      func.update(),
       func()
     ]);
-    expect(tasks).toStrictEqual([1, undefined, 1, 1, 1, undefined, 1]);
+    expect(tasks).toStrictEqual([1, 0, 1, 1, 1, 0, 1]);
     expect(cnt).toBe(0);
 
     cnt = 10;
     const tasks2 = await Promise.all([
-      func.remove(),
+      func.update(),
       func(),
       func(),
       func(),
-      func.remove(),
+      func.update(),
       func(),
       func()
     ]);
-    expect(tasks2).toStrictEqual([undefined, 1, 2, 3, undefined, 4, 5]);
+    expect(tasks2).toStrictEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it('should get and update external cache', async () => {
+    let cnt = 0;
+    const func = memoExternal(async () => 0, {
+      external: {
+        async get() {
+          await sleep(200);
+          return ++cnt;
+        },
+        async set() {
+          await sleep(100);
+          cnt = 0;
+        },
+        async remove() {}
+      }
+    });
+
+    expect(await func.get()).toBe(1);
+    expect(await func.get()).toBe(2);
+    expect(await func.get()).toBe(3);
+    expect(await func.update()).toBe(0);
+    expect(await func.get()).toBe(1);
+    expect(await func.get()).toBe(2);
+    expect(await func.get()).toBe(3);
+  });
+
+  it('should get and update external cache', async () => {
+    let cnt = 1;
+    const func = memoExternal(async () => 0, {
+      external: {
+        async get() {
+          await sleep(200);
+          return ++cnt;
+        },
+        async set(p, v) {
+          await sleep(100);
+          cnt = v;
+        },
+        async remove() {}
+      }
+    });
+
+    expect(await func.get()).toBe(2);
+    expect(await func.get()).toBe(3);
+    expect(await func.get()).toBe(4);
+    expect(await func.update()).toBe(0);
+    expect(await func.get()).toBe(1);
+    expect(await func.get()).toBe(2);
+    expect(await func.get()).toBe(3);
   });
 });
 

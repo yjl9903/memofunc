@@ -25,19 +25,19 @@ export function memoExternal<F extends AsyncFn>(
         }
         cur.callbacks!.add({ res, rej });
       });
+    } else if (cur.state === State.Updating) {
+      let updatedValue: ReturnType<F>;
+      while (cur.state === State.Updating) {
+        updatedValue = await new Promise((res, rej) => {
+          if (!cur.updatingCallbacks) {
+            cur.updatingCallbacks = new Set();
+          }
+          cur.updatingCallbacks!.add({ res, rej });
+        });
+      }
+      return updatedValue!;
     } else {
       try {
-        // Waiting or Removing
-        while (cur.state === State.Removing) {
-          await new Promise<void>((res) => {
-            if (!cur.removingCallbacks) {
-              cur.removingCallbacks = new Set();
-            }
-            // Ignore error
-            cur.removingCallbacks!.add({ res, rej: () => {} });
-          });
-        }
-
         cur.state = State.Waiting;
 
         const externalOnError = options.external.error ?? (() => undefined);
@@ -69,12 +69,16 @@ export function memoExternal<F extends AsyncFn>(
         cur.state = State.Empty;
         cur.error = error;
 
-        // Reject other waiting callbacks
-        for (const callback of cur.callbacks ?? []) {
-          callback.rej(error);
+        try {
+          // Reject other waiting callbacks
+          for (const callback of cur.callbacks ?? []) {
+            callback.rej(error);
+          }
+          // Release callbacks
+          cur.callbacks = undefined;
+        } catch {
+          // Ignore errors
         }
-        // Release callbacks
-        cur.callbacks = undefined;
 
         throw error;
       }
@@ -94,45 +98,72 @@ export function memoExternal<F extends AsyncFn>(
     const cur = walkOrBreak<F, any[]>(root, path);
 
     if (cur) {
-      while (cur.state === State.Waiting || cur.state === State.Removing) {
-        if (cur.state === State.Waiting) {
-          await new Promise((res) => {
-            if (!cur.callbacks) {
-              cur.callbacks = new Set();
-            }
-            // Ignore error
-            cur.callbacks!.add({ res, rej: () => {} });
-          });
-        } else if (cur.state === State.Removing) {
-          await new Promise<void>((res) => {
-            if (!cur.removingCallbacks) {
-              cur.removingCallbacks = new Set();
-            }
-            // Ignore error
-            cur.removingCallbacks!.add({ res, rej: () => {} });
-          });
-        }
-      }
+      await options.external.remove
+        .bind(memoFunc)(args as Parameters<F>)
+        .catch(options.external?.error ?? (() => undefined));
+    }
+  };
 
-      try {
-        cur.state = State.Removing;
+  memoFunc.update = async (...args) => {
+    const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
+    const cur = walkAndCreate<F, any[]>(root, path);
 
-        await options.external.remove
-          .bind(memoFunc)(args as Parameters<F>)
-          .catch(options.external?.error ?? (() => undefined));
-      } finally {
-        cur.state = State.Empty;
+    while (cur.state === State.Waiting || cur.state === State.Updating) {
+      if (cur.state === State.Waiting) {
+        await new Promise((res) => {
+          if (!cur.callbacks) {
+            cur.callbacks = new Set();
+          }
+          // Ignore error
+          cur.callbacks!.add({ res, rej: () => {} });
+        });
+      } else if (cur.state === State.Updating) {
+        await new Promise((res) => {
+          if (!cur.updatingCallbacks) {
+            cur.updatingCallbacks = new Set();
+          }
+          // Ignore error
+          cur.updatingCallbacks!.add({ res, rej: () => {} });
+        });
+      } else {
+        break;
       }
+    }
+
+    try {
+      cur.state = State.Updating;
+
+      const externalOnError = options.external.error ?? (() => undefined);
+      const value = await fn(...args);
+      await options.external.set.bind(memoFunc)(args, value).catch(externalOnError);
+
+      cur.state = State.Empty;
 
       try {
         // Resolve other waiting callbacks
-        for (const callback of cur.removingCallbacks ?? []) {
-          callback.res();
+        for (const callback of cur.updatingCallbacks ?? []) {
+          callback.res(value);
         }
-        cur.removingCallbacks = undefined;
+        cur.updatingCallbacks = undefined;
       } catch {
         // Should not have errors here
       }
+
+      return value;
+    } catch (error) {
+      cur.state = State.Empty;
+
+      try {
+        // Resolve other waiting callbacks
+        for (const callback of cur.updatingCallbacks ?? []) {
+          callback.rej(error);
+        }
+        cur.updatingCallbacks = undefined;
+      } catch {
+        // Should not have errors here
+      }
+
+      throw error;
     }
   };
 

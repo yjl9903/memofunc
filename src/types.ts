@@ -112,6 +112,9 @@ export interface MemoExternalFunc<F extends Fn> {
   // Remove cache
   remove(...args: Parameters<F>): Promise<void>;
 
+  // Update cache
+  update(...args: Parameters<F>): Promise<void>;
+
   // External cache
   external?: MemoExternalOptions<F>['external'];
 }
