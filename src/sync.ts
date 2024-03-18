@@ -1,6 +1,6 @@
 import type { Fn, MemoFunc, MemoOptions } from './types';
 
-import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
+import { State, clearNode, clearNodeCache, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
 export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFunc<F> {
   const root = makeNode<F>();
@@ -9,6 +9,13 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
     // Serialize args
     const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
+
+    if (cur.expiration !== undefined) {
+      // Cache expire
+      if (new Date().getTime() > cur.expiration) {
+        clearNodeCache(cur);
+      }
+    }
 
     if (cur.state === State.Ok) {
       return cur.value;
@@ -19,6 +26,12 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
         const value = fn(...args);
         cur.state = State.Ok;
         cur.value = value;
+
+        if (memoFunc.expirationTtl !== undefined && memoFunc.expirationTtl !== null) {
+          const now = new Date();
+          cur.expiration = now.getTime() + memoFunc.expirationTtl;
+        }
+
         return value;
       } catch (error) {
         cur.state = State.Error;
@@ -27,6 +40,8 @@ export function memo<F extends Fn>(fn: F, options: MemoOptions<F> = {}): MemoFun
       }
     }
   } as MemoFunc<F>;
+
+  memoFunc.expirationTtl = options.expirationTtl;
 
   memoFunc.get = (...args) => {
     return memoFunc(...args);

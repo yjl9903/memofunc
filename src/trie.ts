@@ -13,8 +13,16 @@ export interface Node<T extends Fn> {
   state: State;
   value: ReturnType<T> | undefined;
   error: unknown;
+
+  // Metadata
+  expiration: number | undefined;
+  meta: {} | undefined;
+
+  // Children
   primitive: Map<any, Node<T>>;
   reference: WeakMap<any, Node<T>>;
+
+  // Callbacks
   callbacks?: Set<{ res: (value: ReturnType<T>) => void; rej: (error: unknown) => void }>;
   updatingCallbacks?: Set<{ res: (value: ReturnType<T>) => void; rej: (error: unknown) => void }>;
 }
@@ -24,6 +32,8 @@ export function makeNode<T extends Fn>(): Node<T> {
     state: State.Empty,
     value: undefined,
     error: undefined,
+    expiration: undefined,
+    meta: undefined,
     primitive: new Map(),
     reference: new WeakMap()
   };
@@ -34,9 +44,18 @@ export function clearNode<T extends Fn>(node: Node<T> | undefined) {
     node.state = State.Empty;
     node.value = undefined;
     node.error = undefined;
+    node.expiration = undefined;
+    node.meta = undefined;
     node.primitive = new Map();
     node.reference = new WeakMap();
   }
+}
+
+export function clearNodeCache<T extends Fn>(node: Node<T>) {
+  node.state = State.Empty;
+  node.value = undefined;
+  node.error = undefined;
+  node.expiration = undefined;
 }
 
 function walkBase<T extends Fn, P extends any[] = Parameters<T>>(

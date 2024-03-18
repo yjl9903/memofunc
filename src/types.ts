@@ -4,6 +4,11 @@ export interface MemoOptions<F extends Fn, S extends unknown[] = unknown[]> {
    * This is used to identify cache key
    */
   serialize?: (this: MemoFunc<F>, ...args: Parameters<F>) => S;
+
+  /**
+   * Default expiration time duration (in milliseconds)
+   */
+  expirationTtl?: number;
 }
 
 export interface MemoAsyncOptions<F extends Fn, S extends unknown[] = unknown[]> {
@@ -12,6 +17,11 @@ export interface MemoAsyncOptions<F extends Fn, S extends unknown[] = unknown[]>
    * This is used to identify cache key
    */
   serialize?: (this: MemoAsyncFunc<F>, ...args: Parameters<F>) => S;
+
+  /**
+   * Default expiration time duration (in milliseconds)
+   */
+  expirationTtl?: number;
 
   external?: {
     get: (
@@ -77,6 +87,11 @@ export interface MemoFunc<F extends Fn> {
 
   // Clear all the cache
   clear(): void;
+
+  /**
+   * Default expiration time duration (in seconds)
+   */
+  expirationTtl?: number;
 }
 
 export interface MemoAsyncFunc<F extends Fn> {
@@ -94,6 +109,11 @@ export interface MemoAsyncFunc<F extends Fn> {
 
   // Clear all the cache
   clear(): Promise<void>;
+
+  /**
+   * Default expiration time duration (in seconds)
+   */
+  expirationTtl?: number;
 
   // External cache
   external?: MemoAsyncOptions<F>['external'];

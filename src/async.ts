@@ -1,6 +1,6 @@
 import type { AsyncFn, MemoAsyncFunc, MemoAsyncOptions } from './types';
 
-import { State, clearNode, makeNode, walkAndCreate, walkOrBreak } from './trie';
+import { State, clearNode, clearNodeCache, makeNode, walkAndCreate, walkOrBreak } from './trie';
 
 export function memoAsync<F extends AsyncFn>(
   fn: F,
@@ -12,6 +12,13 @@ export function memoAsync<F extends AsyncFn>(
     // Serialize args
     const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
+
+    if ((cur.state === State.Ok || cur.state === State.Error) && cur.expiration !== undefined) {
+      // Cache expire
+      if (new Date().getTime() > cur.expiration) {
+        clearNodeCache(cur);
+      }
+    }
 
     if (cur.state === State.Ok) {
       return cur.value;
@@ -37,6 +44,11 @@ export function memoAsync<F extends AsyncFn>(
 
         cur.state = State.Ok;
         cur.value = value;
+
+        if (memoFunc.expirationTtl !== undefined && memoFunc.expirationTtl !== null) {
+          const now = new Date();
+          cur.expiration = now.getTime() + memoFunc.expirationTtl;
+        }
 
         if (!hasExternalCache && options.external) {
           await options.external.set.bind(memoFunc)(args, value).catch(externalOnError);
@@ -65,6 +77,8 @@ export function memoAsync<F extends AsyncFn>(
       }
     }
   } as MemoAsyncFunc<F>;
+
+  memoFunc.expirationTtl = options.expirationTtl;
 
   memoFunc.get = (...args) => {
     return memoFunc(...args);

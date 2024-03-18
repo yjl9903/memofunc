@@ -55,6 +55,35 @@ describe('memo sync', () => {
     expect(add(2, 1)).toBe(3);
     expect(add(2, 2)).toBe(3);
   });
+
+  it('should expire cache', async () => {
+    let count = 0;
+    const add = memo(
+      (a: number, b: number) => {
+        count++;
+        return a + b;
+      },
+      {
+        expirationTtl: 10
+      }
+    );
+
+    expect(count).toBe(0);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    expect(count).toBe(1);
+
+    await sleep(100);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    add(1, 2);
+    expect(count).toBe(2);
+  });
 });
 
 describe('memo async', () => {
