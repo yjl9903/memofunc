@@ -111,6 +111,7 @@ export function memoExternal<F extends AsyncFn>(
     }
   };
 
+  // @ts-expect-error ts2322
   memoFunc.update = async (...args) => {
     const path = options.serialize ? options.serialize.bind(memoFunc)(...args) : args;
     const cur = walkAndCreate<F, any[]>(root, path);
@@ -160,7 +161,7 @@ export function memoExternal<F extends AsyncFn>(
         // Should not have errors here
       }
 
-      return value;
+      return value as ReturnType<F>;
     } catch (error) {
       cur.state = State.Empty;
 
